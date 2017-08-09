@@ -58,7 +58,6 @@ pages:
     - Kinesis to S3 App: app-templates/kinesis-to-s3.md
     - S3 to HDFS Sync App: app-templates/s3-to-hdfs-sync.md
 - Applications:
-    - App Data Tracker: app_data_tracker.md
     - dtIngest: dtingest.md
 - Platform:
     - RTS: rts.md

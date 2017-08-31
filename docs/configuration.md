@@ -421,6 +421,103 @@ Full DEBUG logging can be enabled by adding these lines:
 </property>
 ```
 
+## Integration of Gateway and Apex with 3rd party log aggregation tools
+1. Introduction
+During execution Gateway and Apex generate event log records in order to provide an audit trail that can be used to understand the activity of the system and to diagnose problems. Typically the event log records are stored into a local file system and later can be used for analysis and diagnostic.
+Gateway also provides an universal ability to pass and store Gateway and Apex event log records to 3rd party sources and use some external tools to store the log events and do querying and reporting. In order to make it the user should configure logger appender in Gateway configuration files.
+
+2. Configuration of Logger Appenders
+Gateway and Apex Client processes are running on the machine node where Gateway instance was installed. So the configuration of  logger appenders can be done via the regular log4j properties (datatorrent/releases/3.8.0/conf/dtgateway.log4j.properties).
+
+Example of configuration log4j properties for Socket Appender:lizy@datatorrent.com
+```
+log4j.rootLogger=${dt.root.logger.level},tcp
+...
+log4j.appender.tcp=org.apache.log4j.net.SocketAppender
+log4j.appender.tcp.RemoteHost=logstashnode1
+log4j.appender.tcp.Port=5400
+log4j.appender.tcp.ReconnectionDelay=10000
+log4j.appender.tcp.LocationInfo=true
+```
+The configuration of logger appenders for Apex Application Master and Containers can be done via the regular attribute property “apex.attr.LOGGER_APPENDER” that can be defined in the configuration file dt-site.xml (global, local and user) or the static and runtime application properties.
+
+Syntax of logger appender attribute value:
+```
+{comma-separated-appender-names};{comma-separated-appenders-properties}
+```
+Example of configuration of the logger appender attribute for Socket  Appender:
+```
+  <property>
+    <name>apex.attr.LOGGER_APPENDER</name>
+    <value>tcp;log4j.appender.tcp=org.apache.log4j.net.SocketAppender,log4j.appender.tcp.RemoteHost=logstashnode1,log4j.appender.tcp.Port=5400,log4j.appender.tcp.ReconnectionDelay=10000,log4j.appender.tcp.LocationInfo=true</value>
+  </property>
+```
+
+3. Integration with ElasticSearch and Splunk
+The user can use different ways to store event log records to an external data source. But we would recommend to use the following scenario.
+Gateway and Apex can be configured to use Socket Appender to send logger events to Logstash. And Logstash can deploy event log records to any output data sources. For instance the following picture shows the integration workflow with ElasticSearch and Splunk.
+![](images/configuration/Conf_3rdparty1.png)
+
+Example of  Logstash configuration:
+```
+input {  getting of looger events from Socket Appender
+  log4j {
+    mode => "server"
+    port => 5400
+    type => "log4j"
+  }
+}
+
+Filter{  transformation of looger events to event log records
+  mutate {
+    remove_field => [ "@version","path","tags","host","type","logger_name" ]
+    rename => { "apex.user" => "user" }
+    rename => { "apex.application" => "application" }
+    rename => { "apex.containerId" => "containerId" }
+    rename => { "apex.applicationId" => "applicationId" }
+    rename => { "apex.node" => "node" }
+    rename => { "apex.service" => "service" }
+    rename => { "dt.node" => "node" }
+    rename => { "dt.service" => "service" }
+    rename => { "priority" => "level" }
+    rename => { "timestamp" => "recordTime" }
+   }
+   date {
+    match => [ "recordTime", "UNIX" ]
+    target => "recordTime"
+  }
+}
+
+output {
+  elasticsearch {  putting of event log records to ElasticSearch cluster
+  hosts => ["esnode1:9200","esnode2:9200","esnode3:9200"]
+    index => "apexlogs-%{+YYYY-MM-dd}"
+    manage_template => false
+  }
+
+  tcp {  putting of event log records to Splunk
+   host => "splunknode"
+   mode => "client"
+   port => 15000
+   codec => "json_lines"
+ }
+}
+```
+
+ElasticSearch users can use Kibana reporting tool for analysis and diagnostic. Splunk users can use Splunkweb.
+![](images/configuration/Conf_3rdparty2.png)
+
+Links to 3rd party tools:
+
+Logstash: https://www.elastic.co/products/logstash
+
+ElasticSearch: https://www.elastic.co/products/elasticsearch
+
+Kibana: https://www.elastic.co/products/kibana
+
+Splunk: https://www.splunk.com
+
+
 ## Custom log4j Properties for Application Packages
 
 There are two ways of setting custom `log4j` properties in an Apex application

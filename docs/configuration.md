@@ -445,6 +445,7 @@ Syntax of logger appender attribute value:
 ```
 {comma-separated-appender-names};{comma-separated-appenders-properties}
 ```
+
 Example of configuration of the logger appender attribute for Socket  Appender:
 ```
   <property>
@@ -456,6 +457,7 @@ Example of configuration of the logger appender attribute for Socket  Appender:
 3. Integration with ElasticSearch and Splunk
 The user can use different ways to store event log records to an external data source. But we would recommend to use the following scenario.
 Gateway and Apex can be configured to use Socket Appender to send logger events to Logstash. And Logstash can deploy event log records to any output data sources. For instance the following picture shows the integration workflow with ElasticSearch and Splunk.
+
 ![](images/configuration/Conf_3rdparty1.png)
 
 Example of  Logstash configuration:
@@ -505,6 +507,7 @@ output {
 ```
 
 ElasticSearch users can use Kibana reporting tool for analysis and diagnostic. Splunk users can use Splunkweb.
+
 ![](images/configuration/Conf_3rdparty2.png)
 
 Links to 3rd party tools:
